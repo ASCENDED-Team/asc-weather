@@ -12,8 +12,6 @@ export const WeatherConfig = {
         'FOG',
         'CLEARING',
         'XMAS',
-        'SNOW',
-        'BLIZZARD',
     ] as Weathers[],
     timeBetweenUpdates: 60000 * 15,
     timeToTransition: 15,

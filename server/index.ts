@@ -19,6 +19,7 @@ type WeatherCell = {
 type PlayerWeatherData = {
     lastGridX: number;
     lastGridY: number;
+    lastWeather: Weathers;
 };
 
 const weatherGrid: WeatherCell[][] = Array(GRID_SIZE)
@@ -78,27 +79,38 @@ function updateWeather() {
             updateGridCellWeather(x, y);
         }
     }
-
-    for (let player of alt.Player.all) {
-        if (Rebar.player.useStatus(player).hasCharacter()) {
-            updatePlayerWeather(player);
-        }
-    }
 }
 
 function updatePlayerWeather(player: alt.Player) {
     const [gridX, gridY] = getGridCoordinates(player.pos);
     const cell = weatherGrid[gridX][gridY];
-    Rebar.player.useWorld(player).setWeather(cell.weather, WeatherConfig.timeToTransition);
 
     const playerData = playerWeatherData.get(player);
+    const lastWeather = playerData ? playerData.lastWeather : cell.weather;
 
-    if (!playerData || playerData.lastGridX !== gridX || playerData.lastGridY !== gridY) {
+    if (hasPlayerMovedToNewGridCell(player)) {
         debugLog(`Player ${player.id} moved to new Grid Cell [${gridX}, ${gridY}]`);
         debugLog(`Setting Weather: ${cell.weather}, Temperature: ${cell.temperature}°C`);
 
-        playerWeatherData.set(player, { lastGridX: gridX, lastGridY: gridY });
+        Rebar.player.useWorld(player).setWeather(lastWeather, WeatherConfig.timeToTransition);
+        alt.setTimeout(() => {
+            Rebar.player.useWorld(player).setWeather(cell.weather, WeatherConfig.timeToTransition);
+        }, WeatherConfig.timeToTransition);
+
+        playerWeatherData.set(player, { lastGridX: gridX, lastGridY: gridY, lastWeather: cell.weather });
     }
+}
+
+function hasPlayerMovedToNewGridCell(player: alt.Player): boolean {
+    const [currentGridX, currentGridY] = getGridCoordinates(player.pos);
+    const playerData = playerWeatherData.get(player);
+
+    if (!playerData) {
+        return true;
+    }
+
+    const { lastGridX, lastGridY } = playerData;
+    return currentGridX !== lastGridX || currentGridY !== lastGridY;
 }
 
 function handleCharacterSelect(player: alt.Player) {
@@ -151,4 +163,4 @@ alt.setInterval(() => {
             updatePlayerWeather(player);
         }
     }
-}, 5000);
+}, 15000);
